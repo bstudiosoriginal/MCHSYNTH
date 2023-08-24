@@ -65,7 +65,7 @@ def assemblyTest():
     ground = Ground()
     g2 = Ground()
     assembly = Assembly(links=[ground, l1, l2, l3, g2], order=[Assembly.create_order(), Assembly.create_order(idx=0), Assembly.create_order(), Assembly.create_order()])
-    assembly.plot()
+    # assembly.plot()
     print('Mobility: ',assembly.mobility())
     assembly.forces_analysis()
     

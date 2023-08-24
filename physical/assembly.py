@@ -59,4 +59,5 @@ class Assembly(object):
     
     def forces_analysis(self):
         for j in self.joints:
-            j.force_analysis()
+            eqns = j.force_analysis()
+            print(eqns)
