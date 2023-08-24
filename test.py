@@ -5,7 +5,7 @@ from core.coordinatesystem import SphericalCoordinateSystem, CylindricalCoordina
 
 
 def link_creation_test():
-    from physical.link import Link
+    from physical.link import Link, Ground
     
     # normal creation
     link0 = Link(start_pos=Position(10, 1, 0), end_pos=Position(40, 2, 3))
@@ -16,7 +16,7 @@ def link_creation_test():
     link1.check_valid()
     print('\n')
 
-    link2 = Link(end_pos=Position(1, 3, 0), displacement=Displacement(4, 5, 0))
+    link2 = Link(end_pos=Position(1, 8, 0), displacement=Displacement(4, 9, 0))
     link2.check_valid()
     print('\n')
 
@@ -42,13 +42,35 @@ def link_creation_test():
     link7.check_valid()
     print('\n')
 
-    print(link2.get_normal(), link3.get_normal(), link1.get_normal(), link5.get_normal())
-    link1.attach(link3)
+    print(link2.get_normal(), link3.get_normal(), link1.get_normal(), link7.get_normal())
+    link1.attach_to(link3)
     link1.check_valid()
-    
+    ax = link1.view(show=False)
+    link2.view(ax, False)
+    link2.attach_to(link1)
+    link2.view(ax)
 
+    link8 = Ground()
+    link2.attach_to(link8)
+    link2.view(show=True)
+
+    
+def assemblyTest():
+    from physical.assembly import Assembly
+    from physical.link import Link, Ground
+    l1 = Link(start_pos=Position(10, 1, 0), end_pos=Position(40, 2, 0), name='GB')
+    l2 = Link(start_pos=Position(12, 5, 0), end_pos=Position(20, 9, 0), name='BC')
+    l3 = Link(start_pos=Position(1, 5, 0), end_pos=Position(20, 9, 0), name='CG')
+
+    ground = Ground()
+    g2 = Ground()
+    assembly = Assembly(links=[ground, l1, l2, l3, g2], order=[Assembly.create_order(), Assembly.create_order(idx=0), Assembly.create_order(), Assembly.create_order()])
+    assembly.plot()
+    print('Mobility: ',assembly.mobility())
+    assembly.forces_analysis()
     
     
 
 if __name__ == '__main__':
-    link_creation_test()
+    # link_creation_test()
+    assemblyTest()

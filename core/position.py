@@ -114,6 +114,11 @@ class Position(Measurement):
             y = self.position[1] * o.position[1]
             z = self.position[2] * o.position[2]
             return Displacement(dx=x, dy=y, dz=z)
+        elif isinstance(o, (int, float)):
+            x = self.position[0] * o
+            y = self.position[1] * o
+            z = self.position[2] * o
+            return Position(x=x, y=y, z=z)
         else:
             raise ValueError("Cannot multiply non position type")
 
@@ -167,4 +172,51 @@ class Displacement(Position):
     
     def __str__(self) -> str:
         return f'<Displacement: {self.position}>'
+
+    def __mul__(self, o):
+        if isinstance(o, Displacement):
+            x = self.position[0] * o.position[0]
+            y = self.position[1] * o.position[1]
+            z = self.position[2] * o.position[2]
+            return Displacement(dx=x, dy=y, dz=z)
+        elif isinstance(o, Position):
+            x = self.position[0] * o.position[0]
+            y = self.position[1] * o.position[1]
+            z = self.position[2] * o.position[2]
+            return Displacement(dx=x, dy=y, dz=z)
+        elif isinstance(o, (int, float)):
+            x = self.position[0] * o
+            y = self.position[1] * o
+            z = self.position[2] * o
+            return Displacement(dx=x, dy=y, dz=z)
+        else:
+            raise ValueError("Cannot multiply non position type")
+
     
+    def __add__(self, o):
+        if isinstance(o, Displacement):
+            x = self.position[0] + o.position[0]
+            y = self.position[1] + o.position[1]
+            z = self.position[2] + o.position[2]
+            return Displacement(dx=x, dy=y, dz=z)
+        elif isinstance(o, Position):
+            x = self.position[0] + o.position[0]
+            y = self.position[1] + o.position[1]
+            z = self.position[2] + o.position[2]
+            return Position(x=x, y=y, z=z)
+        else:
+            raise ValueError("Cannot add non position type")
+
+    def __sub__(self, o):
+        if isinstance(o, Displacement):
+            x = self.position[0] - o.position[0]
+            y = self.position[1] - o.position[1]
+            z = self.position[2] - o.position[2]
+            return Displacement(dx=x, dy=y, dz=z)
+        elif isinstance(o, Position):
+            x = self.position[0] - o.position[0]
+            y = self.position[1] - o.position[1]
+            z = self.position[2] - o.position[2]
+            return Position(x=x, y=y, z=z)
+        else:
+            raise ValueError("Cannot subtract non position type")

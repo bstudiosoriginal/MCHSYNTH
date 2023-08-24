@@ -3,10 +3,12 @@ from core.position import Position, Displacement
 from core.rotation import Rotation
 from core.scale import Scale
 from core.coordinatesystem import SphericalCoordinateSystem, CylindricalCoordinateSystem
-import random
+import copy
 import time
+import matplotlib.pyplot as plt
+from physical.joint import Joint
 
-class Link(object):
+class LinkBase(object):
 
     _start_pos = None
 
@@ -20,13 +22,12 @@ class Link(object):
 
     _lenght = None
 
-    def __hash__(self):
-        return hash(self.name)
-
-    def __init__(self, start_pos=None, end_pos=None, displacement=None, spherical_displacement=None, cylindrical_displacement=None, spherical=None, cylindrical=None, name=None) -> None:
+    def __init__(self, start_pos: Position=None, end_pos: Position=None, displacement: Displacement=None, spherical_displacement=None, cylindrical_displacement=None, spherical=None, cylindrical=None, name=None) -> None:
         if name is None:
             name = str(time.time())
+        # assert name not in Link._names, "Name already exists"
         self.name = name
+        self.parents = set()
         self.displacement = displacement
         self.start_pos = start_pos
         self.end_pos = end_pos
@@ -50,6 +51,9 @@ class Link(object):
                 self.start_pos = start_pos
                 self.end_pos = end_pos
 
+    def __hash__(self):
+        return hash(self.name)
+    
     def check_valid(self, v=True):
         if v:
             print('start pos', self.start_pos, self.start_pos is not None)
@@ -57,8 +61,8 @@ class Link(object):
             print('displacement', self.displacement, self.displacement is not None)
             print('length', self._lenght, self._lenght is not None)
             print('direction', self._direction, self._direction is not None)
-            
         return self._start_pos is not None and self._end_pos is not None and self._lenght is not None and self._displacement is not None and self._direction is not None
+    
     @property
     def start_pos(self):
         return self._start_pos
@@ -82,8 +86,12 @@ class Link(object):
         if isinstance(val, Displacement):
             self._displacement = val
             self._lenght = self._displacement.abs_displacement()
-            phi = np.arccos(self._displacement.dz / self._lenght)
-            theta = np.arctan2(self._displacement.dy, self._displacement.dx)
+            if self._lenght:
+                phi = np.arccos(self._displacement.dz / self._lenght)
+                theta = np.arctan2(self._displacement.dy, self._displacement.dx)
+            else:
+                phi = 0
+                theta = 0
             self._direction = Rotation(None, 0, theta, phi)
         if self.displacement and self.start_pos:
             self._end_pos = self.start_pos + self.displacement
@@ -111,11 +119,12 @@ class Link(object):
             ndet = 1
         return (n/ndet)
     
-    def attach(self, other, point={'self': 'start', 'other': 'end'}, constraint='pin'):
+    def attach_to(self, other, point={'self': 'start', 'other': 'end'}, constraint='pin') -> Joint:
         aligned = False
-        if isinstance(other, Link):
+        if isinstance(other, (LinkBase)):
             n1 =  self.get_normal()
             n2 = other.get_normal()
+            # print(n1, n2)
             if np.sum(n1) != 0 and np.sum(n2) != 0:
                 if (n1[0] == n2[0] and n1[1] == n2[1] and n1[2] == n2[2]) or (n1[0] == -n2[0] and n1[1] == -n2[1] and n1[2] == -n2[2]):
                         # aligned
@@ -127,6 +136,7 @@ class Link(object):
                     aligned = False
             else:
                 # print('1')
+
                 if np.sum(n1) == 0 and np.sum(n2) != 0:
                     
                     # we are zero here. lets use displacement as our vector
@@ -144,7 +154,7 @@ class Link(object):
                         # print('not aligned')
                         aligned = False
                 elif np.sum(n2) == 0 and np.sum(n1) != 0:
-                    print('2')
+                    # print('2')
                     # we are zero here. lets use displacement as our vector
                     n2 = np.cross(np.array(other.displacement.position), np.array(self.start_pos.position))
                     n2det = np.sqrt(np.sum(n2**2))
@@ -154,31 +164,37 @@ class Link(object):
                     if (n1[0] == n2[0] and n1[1] == n2[1] and n1[2] == n2[2]) or (n1[0] == -n2[0] and n1[1] == -n2[1] and n1[2] == -n2[2]):
                         # aligned
                         aligned = True
-                        print('aligned')
+                        # print('aligned')
                         pass
                     else:
                         # not aligned
                         aligned = False
-                        print('not aligned')
+                        # print('not aligned')
                         pass
+                    aligned = True
                 else:
                     # we are zero here. lets use displacement as our vector
                     # aligned
                     aligned = True
                     print('aligned')
                     pass
-        if aligned:
-            # perform attachment
-            self._attach(other, point, constraint)
-        else:
+        if isinstance(self, Ground) or isinstance(other, Ground):
+            aligned = True
+        if not aligned:
             # do not attach
             raise ValueError('Cannot attach non aligned links')
+        return self._attach_to(other, point, constraint)
         
     def r(self):
         return np.array(self.displacement.position)
 
     def vectorize(self):
         return np.array(self.start_pos.position), np.array(self.end_pos.position)
+
+    def __eq__(self, o):
+        if isinstance(o, LinkBase):
+            return self.name == o.name #and (self.start_pos == o.start_pos) and (self.end_pos == o.end_pos)
+        return False
     
     def redefine(self, displacement, elastic=False):
         # makes sure start position is fixed.
@@ -190,10 +206,16 @@ class Link(object):
         else:
             self.displacement = displacement
 
-    def _attach(self, other, point, constraint):
+    def _attach_to(self, other, point, constraint, alter_displacement=False):
+        joint = Joint(other, self, constraint, point['other'], point['self'])
         if constraint == 'pin':
             # pin joint
             # move to point
+            if self.parents:
+                print('ALERT: Altering displacement multiple parents')
+                alter_displacement = True
+            if alter_displacement:
+                raise NotImplementedError('Cannot alter displacement')
             if point['self'] == 'start' and point['other'] == 'end':
                 self.start_pos = Position(*other.end_pos.position)
             elif point['self'] == 'end' and point['other'] == 'start':
@@ -202,4 +224,54 @@ class Link(object):
                 self.start_pos = Position(*other.start_pos.position)
             elif point['self'] == 'end' and point['other'] == 'end':
                 self.end_pos = Position(*other.end_pos.position)
-            
+            self.parents.add(other)
+        return joint
+
+    def view(self, ax=None, show=True):
+        if ax is None:
+            fig = plt.figure()
+            ax = plt.axes(projection='3d')
+        points = np.array([self.start_pos.position, self.end_pos.position]).T
+        ax.plot(points[0, :], points[1, :], points[2, :])
+        ax.scatter(points[0,:], points[1, :], points[2, :])
+        if show:
+            plt.show()
+        return ax
+
+
+class Link(LinkBase):
+
+    _names = set()
+
+    def __init__(self, start_pos: Position=None, end_pos: Position=None, displacement: Displacement=None, spherical_displacement=None, cylindrical_displacement=None, spherical=None, cylindrical=None, name=None) -> None:
+        super().__init__(start_pos, end_pos, displacement, spherical_displacement, cylindrical_displacement, spherical, cylindrical, name)
+        assert name not in Link._names, "Name already exists"
+        Link._names.add(name)
+        # self.name = name
+
+    
+class Ground(LinkBase):
+
+    _names = set()
+
+    _g = 1
+
+    def __init__(self, start_pos: Position = Position(), ) -> None:
+        end_pos = copy.deepcopy(start_pos)
+        name='G'
+        super().__init__(start_pos, end_pos, None, None, None, None, None, name)
+        
+        # assert name not in Ground._names, "Name already exists"
+        Ground._names.add(name)
+        
+
+    def view(self, ax=None, show=True):
+        if ax is None:
+            fig = plt.figure()
+            ax = plt.axes(projection='3d')
+        points = np.array([self.start_pos.position, self.end_pos.position]).T
+        # ax.plot(points[0, :], points[1, :], points[2, :])
+        ax.scatter(points[0,:], points[1, :], points[2, :], s=40)
+        if show:
+            plt.show()
+        return ax
