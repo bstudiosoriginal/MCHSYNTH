@@ -29,7 +29,7 @@ class Joint():
                 s3 = symbols([f'RJx_{self.l1.name}_{self.l2.name}', f'RJy_{self.l1.name}_{self.l2.name}', f'RJz_{self.l1.name}_{self.l2.name}'])
             else:
                 s3 = []
-            
+            s4 = []
             if self.l1_attach == 'end':
                 p1 = -self.l1.displacement
             else:
@@ -40,10 +40,12 @@ class Joint():
                 p2 = self.l2.displacement
             if p1.abs_displacement():
                 cl1 = (p1 * (1/p1.abs_displacement())).position
+                
             else:
                 cl1 = [0, 0, 0]
             if p2.abs_displacement():
                 cl2 = (p2 * (1/p2.abs_displacement())).position
+                
             else:
                 cl2 = [0, 0, 0]
             if s3:
@@ -60,8 +62,14 @@ class Joint():
             # print(eqx)
             # print(eqy)
             # print(eqz)
-            sol = solve([eqx, eqy, eqz], s2+s3)
-            # print(sol)
+            m1=False
+            m2=False
+            if p1.abs_displacement():
+                d1 = p1.abs_displacement()
+                m1 = s[0]*p1.dx/d1 +s[1]*p1.dy/d1 +symbols(f'Mz_{self.l1.name}')
+            if p2.abs_displacement():
+                d2 = p2.abs_displacement()
+                m2 = s[3]*p2.dx/d2 + s[4]*p2.dy/d2 + symbols(f'P_{self.l2.name}')
             # exp1 = solve(eqx, s2[0], s2[1], dict=True)
             # exp2 = solve(eqy, s2[0], s2[1], dict=True)
             # exp3 = solve(eqz, s2[0], s2[1], dict=True)
@@ -105,17 +113,25 @@ class Joint():
             eqx = eq1.subs(s[0], s2[0]*cl1[0])
             eqy = eq2.subs(s[1], s2[0]*cl1[1])
             eqz = eq3.subs(s[2], s2[0]*cl1[2])
+            m1 = False
+            m2 = False
+            if p1.abs_displacement():
+                d1 = p1.abs_displacement()
+                m1 = s[0]*p1.dx/d1 +s[1]*p1.dy/d1 +symbols(f'Mz_{self.l1.name}')
+            
+            
+            m2 =  symbols(f'P_{self.l2.name}')
             # print(eqx)
             # print(eqy)
             # print(eqz)
             # exp1 = solve(eqx, s2[0], s2[1], dict=True)
             # exp2 = solve(eqy, s2[0], s2[1], dict=True)
             # exp3 = solve(eqz, s2[0], s2[1], dict=True)
-            sol = solve([eqx, eqy, eqz], s2+s3)
+            # sol = solve([eqx, eqy, eqz], s2+s3)
             # exp2 = solve(eqy, s2[0], s2[1])
             # print(exp1)
             # print(exp2)
             # print(exp3)
             # print('\n')
-        return sol
+        return [[eqx, eqy, eqz], [m1, m2]]
             

@@ -97,6 +97,7 @@ class LinkBase(object):
             self._end_pos = self.start_pos + self.displacement
         elif self.displacement and self.end_pos:
             self._start_pos = self.end_pos - self.displacement
+        
 
     @property
     def end_pos(self):
@@ -153,6 +154,7 @@ class LinkBase(object):
                         # not aligned
                         # print('not aligned')
                         aligned = False
+                    aligned = True
                 elif np.sum(n2) == 0 and np.sum(n1) != 0:
                     # print('2')
                     # we are zero here. lets use displacement as our vector
@@ -227,13 +229,17 @@ class LinkBase(object):
             self.parents.add(other)
         return joint
 
-    def view(self, ax=None, show=True):
+    def view(self, ax=None, xlim=[-10, 10], ylim=[-10, 10], show=True, eq=True):
         if ax is None:
             fig = plt.figure()
             ax = plt.axes(projection='3d')
         points = np.array([self.start_pos.position, self.end_pos.position]).T
         ax.plot(points[0, :], points[1, :], points[2, :])
         ax.scatter(points[0,:], points[1, :], points[2, :])
+        # ax.set_xlim(xlim)
+        # ax.set_ylabel(ylim)
+        if eq:
+            set_axes_equal(ax)
         if show:
             plt.show()
         return ax
@@ -249,7 +255,35 @@ class Link(LinkBase):
         Link._names.add(name)
         # self.name = name
 
-    
+def set_axes_equal(ax):
+    '''Make axes of 3D plot have equal scale so that spheres appear as spheres,
+    cubes as cubes, etc..  This is one possible solution to Matplotlib's
+    ax.set_aspect('equal') and ax.axis('equal') not working for 3D.
+
+    Input
+      ax: a matplotlib axis, e.g., as output from plt.gca().
+    '''
+
+    x_limits = ax.get_xlim3d()
+    y_limits = ax.get_ylim3d()
+    z_limits = ax.get_zlim3d()
+
+    x_range = abs(x_limits[1] - x_limits[0])
+    x_middle = np.mean(x_limits)
+    y_range = abs(y_limits[1] - y_limits[0])
+    y_middle = np.mean(y_limits)
+    z_range = abs(z_limits[1] - z_limits[0])
+    z_middle = np.mean(z_limits)
+
+    # The plot bounding box is a sphere in the sense of the infinity
+    # norm, hence I call half the max range the plot radius.
+    plot_radius = 0.5*max([x_range, y_range, z_range])
+
+    ax.set_xlim3d([x_middle - plot_radius, x_middle + plot_radius])
+    ax.set_ylim3d([y_middle - plot_radius, y_middle + plot_radius])
+    ax.set_zlim3d([z_middle - plot_radius, z_middle + plot_radius])
+
+
 class Ground(LinkBase):
 
     _names = set()
@@ -265,13 +299,15 @@ class Ground(LinkBase):
         Ground._names.add(name)
         
 
-    def view(self, ax=None, show=True):
+    def view(self, ax=None, xlim=[-10, 10], ylim=[-10, 10], show=True, eq=True):
         if ax is None:
             fig = plt.figure()
             ax = plt.axes(projection='3d')
         points = np.array([self.start_pos.position, self.end_pos.position]).T
         # ax.plot(points[0, :], points[1, :], points[2, :])
         ax.scatter(points[0,:], points[1, :], points[2, :], s=40)
+        if eq:
+            set_axes_equal(ax)
         if show:
             plt.show()
         return ax

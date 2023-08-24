@@ -46,7 +46,7 @@ def link_creation_test():
     link1.attach_to(link3)
     link1.check_valid()
     ax = link1.view(show=False)
-    link2.view(ax, False)
+    link2.view(ax, show=False)
     link2.attach_to(link1)
     link2.view(ax)
 
@@ -58,14 +58,17 @@ def link_creation_test():
 def assemblyTest():
     from physical.assembly import Assembly
     from physical.link import Link, Ground
-    l1 = Link(start_pos=Position(10, 1, 0), end_pos=Position(40, 2, 0), name='GB')
-    l2 = Link(start_pos=Position(12, 5, 0), end_pos=Position(20, 9, 0), name='BC')
-    l3 = Link(start_pos=Position(1, 5, 0), end_pos=Position(20, 9, 0), name='CG')
-
+    l1 = Link(start_pos=Position(), cylindrical_displacement=CylindricalCoordinateSystem(40, np.radians(70), 0), name='CRANK')
+    l2 = Link(start_pos=Position(), cylindrical_displacement=CylindricalCoordinateSystem(150, np.radians(18), 0), name='COUPLER')
+    l3 = Link(start_pos=Position(), cylindrical_displacement=CylindricalCoordinateSystem(50, np.radians(80+180), 0), name='ROCKER')
+    # l1.view( )
+    # l2.view()
+    # l3.view()
+    # l4.view()
     ground = Ground()
     g2 = Ground()
     assembly = Assembly(links=[ground, l1, l2, l3, g2], order=[Assembly.create_order(), Assembly.create_order(idx=0), Assembly.create_order(), Assembly.create_order()])
-    # assembly.plot()
+    assembly.plot()
     print('Mobility: ',assembly.mobility())
     assembly.forces_analysis()
     
