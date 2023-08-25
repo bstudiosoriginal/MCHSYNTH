@@ -2,6 +2,7 @@ from typing import List
 from physical.link import Link, Ground
 from core.position import Position
 import numpy as np
+from sympy import Eq, solve, symbols
 
 class Assembly(object):
 
@@ -50,6 +51,9 @@ class Assembly(object):
             #     set_axes_equal(ax)
             ax = self.links[link_id].view(ax, xlim, ylim, show, eq=show)
         
+    @staticmethod
+    def symbol(v):
+        return symbols(v)
 
     def mobility(self):
         L = len(self.links)
@@ -60,10 +64,52 @@ class Assembly(object):
         j2 = len([i for i in j if i == 'J2']) 
         return 3*(L) - 2*j1 - j2 - 3*G
     
-    def forces_analysis(self):
-        for j in self.joints:
-            eqns = j.force_analysis()
-            print(eqns)
+    def forces_analysis(self, link_F_R={}):
+        sysx = []
+        sysy = []
+        sysmom = []
+        for j in range(len(self.joints)-1):
+            eqns1 = self.joints[j].force_analysis()
+            eqns2 = self.joints[j+1].force_analysis()
+            mid_link = set({self.joints[j].l1, self.joints[j].l2}).intersection({self.joints[j+1].l1, self.joints[j+1].l2}).pop()
+            #  external forces
+            if mid_link.name in link_F_R:
+                Fextx = link_F_R[mid_link.name]['EXTERNAL_FORCE_X']
+                Fexty = link_F_R[mid_link.name]['EXTERNAL_FORCE_Y']
+                Rextx = link_F_R[mid_link.name]['EXTERNAL_FORCE_POSITION_X']
+                Rexty = link_F_R[mid_link.name]['EXTERNAL_FORCE_POSITION_Y']
+                Mext = link_F_R[mid_link.name]['EXTERNAL_MOMENT']
+            else:
+                Fextx = [0]
+                Fexty = [0]
+                Rextx = [0]
+                Rexty = [0]
+                Mext = [0]
+            #sum fx
+            Fx = sum(Fextx) + (-1 if j != 0 or j == (len(self.joints)-1) else 1)*eqns1[0][0]+ eqns2[0][0]
+            #sum fy
+            Fy = sum(Fexty) + (-1 if j != 0 or j == (len(self.joints)-1) else 1)*eqns1[0][1]+ eqns2[0][1]
+
+            # external moments
+            M = 0
+            for i in range(len(Rextx)):
+                # print(Rexty[i], Rextx[i])
+                M += sum(Mext) - Fextx[i] * Rexty[i] + Fexty[i] * Rextx[i]
+            # internal moment
+            M += (-eqns2[0][0] * mid_link.displacement.dy) + (eqns2[0][1] * mid_link.displacement.dx)
+            eq1 = Eq(Fx, 0)
+            eq2 = Eq(Fy, 0)
+            eq3 = Eq(M, 0)
+            sysx.append(eq1)
+            sysy.append(eq2)
+            sysmom.append(eq3)
+            # print(Fx, Fy, M)
+            print(eq1, 'x equations', mid_link.name)
+            print(eq2, 'y equations', mid_link.name)
+            print(eq3, 'z equations', mid_link.name)
+        sol = solve(sysx+sysy+sysmom, set=True)
+        print(sol)
+
 
 def set_axes_equal(ax):
     '''Make axes of 3D plot have equal scale so that spheres appear as spheres,

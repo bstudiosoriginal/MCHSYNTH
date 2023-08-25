@@ -22,6 +22,16 @@ class LinkBase(object):
 
     _lenght = None
 
+    Fext_x = [0]
+
+    Fext_y = [0]
+
+    Rextx = [0]
+
+    Rexty = [0]
+
+    Mext = [0]
+
     def __init__(self, start_pos: Position=None, end_pos: Position=None, displacement: Displacement=None, spherical_displacement=None, cylindrical_displacement=None, spherical=None, cylindrical=None, name=None) -> None:
         if name is None:
             name = str(time.time())
