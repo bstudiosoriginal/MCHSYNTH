@@ -70,7 +70,7 @@ def assemblyTest():
     assembly = Assembly(links=[ground, l1, l2, l3, g2], order=[Assembly.create_order(), Assembly.create_order(idx=0), Assembly.create_order(), Assembly.create_order()])
     # assembly.plot()
     print('Mobility: ',assembly.mobility())
-    assembly.forces_analysis({'CRANK': 
+    assembly.static_forces_analysis({'CRANK': 
                                       {'EXTERNAL_FORCE_X': [0], 
                                        'EXTERNAL_FORCE_Y': [0], 
                                        'EXTERNAL_FORCE_POSITION_X': [0], 
@@ -107,7 +107,7 @@ def assemblyTest2():
     assembly = Assembly(links=[ground, l1, l2, l3, g2], order=[Assembly.create_order(), Assembly.create_order(idx=0), Assembly.create_order(), Assembly.create_order()])
     # assembly.plot()
     print('Mobility: ',assembly.mobility())
-    assembly.forces_analysis({'CRANK': 
+    assembly.static_forces_analysis({'CRANK': 
                                       {'EXTERNAL_FORCE_X': [0], 
                                        'EXTERNAL_FORCE_Y': [0], 
                                        'EXTERNAL_FORCE_POSITION_X': [0], 

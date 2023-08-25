@@ -64,13 +64,13 @@ class Assembly(object):
         j2 = len([i for i in j if i == 'J2']) 
         return 3*(L) - 2*j1 - j2 - 3*G
     
-    def forces_analysis(self, link_F_R={}):
+    def static_forces_analysis(self, link_F_R={}):
         sysx = []
         sysy = []
         sysmom = []
         for j in range(len(self.joints)-1):
-            eqns1 = self.joints[j].force_analysis()
-            eqns2 = self.joints[j+1].force_analysis()
+            eqns1 = self.joints[j].static_force_analysis()
+            eqns2 = self.joints[j+1].static_force_analysis()
             mid_link = set({self.joints[j].l1, self.joints[j].l2}).intersection({self.joints[j+1].l1, self.joints[j+1].l2}).pop()
             #  external forces
             if mid_link.name in link_F_R:
