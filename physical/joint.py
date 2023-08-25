@@ -1,5 +1,6 @@
 from sympy import symbols, Eq, solve, linsolve
-import numpy
+import numpy as np
+
 class Joint():
 
     def __init__(self, l1, l2, constraint, l1_attach, l2_attach, child=1) -> None:
@@ -31,4 +32,5 @@ class Joint():
             # reactions exist
             s = symbols(['Fx_'+self.l1.name+'_'+self.l2.name, 'Fy_'+self.l1.name+'_'+self.l2.name, 'Fz_'+self.l1.name+'_'+self.l2.name])
             s2 = symbols(['F_'+self.l1.name+'_'+self.l2.name])
-            return s.subs(s[0], s2[0]*self.l1.direction), s2
+            print(type(self.l1), self.l1.name)
+            return [s[0].subs(s[0], s2[0]*np.cos(self.l1._direction.xyz[1])), s[1].subs(s[1], s2[0]*np.sin(self.l1._direction.xyz[1]))], s2

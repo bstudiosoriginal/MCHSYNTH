@@ -55,6 +55,10 @@ class Assembly(object):
     def symbol(v):
         return symbols(v)
 
+    @staticmethod
+    def Eq(ex, rhs=0):
+        return Eq(ex, rhs)
+
     def mobility(self):
         L = len(self.links)
         G = len([i for i in self.links if isinstance(i, Ground)])
@@ -64,21 +68,43 @@ class Assembly(object):
         j2 = len([i for i in j if i == 'J2']) 
         return 3*(L) - 2*j1 - j2 - 3*G
     
-    def static_forces_analysis(self, link_F_R={}):
+    def forces_analysis(self, LINK_PARAMS={}, constraint_equations=[]):
         sysx = []
         sysy = []
         sysmom = []
         for j in range(len(self.joints)-1):
             eqns1 = self.joints[j].static_force_analysis()
             eqns2 = self.joints[j+1].static_force_analysis()
-            mid_link = set({self.joints[j].l1, self.joints[j].l2}).intersection({self.joints[j+1].l1, self.joints[j+1].l2}).pop()
+            # print(self.joints[j].l1, self.joints[j].l2)
+            # print(self.joints[j+1].l1, self.joints[j+1].l2)
+            
+            mid_link = self.joints[j].l2 # set({self.joints[j].l1, self.joints[j].l2}).intersection({self.joints[j+1].l1, self.joints[j+1].l2}).pop()
             #  external forces
-            if mid_link.name in link_F_R:
-                Fextx = link_F_R[mid_link.name]['EXTERNAL_FORCE_X']
-                Fexty = link_F_R[mid_link.name]['EXTERNAL_FORCE_Y']
-                Rextx = link_F_R[mid_link.name]['EXTERNAL_FORCE_POSITION_X']
-                Rexty = link_F_R[mid_link.name]['EXTERNAL_FORCE_POSITION_Y']
-                Mext = link_F_R[mid_link.name]['EXTERNAL_MOMENT']
+            MASS = 0
+            I = 0
+            ACCEL = [0, 0]
+            RCG = [0, 0]
+            ANGULAR_ACCEL = 0
+            print(mid_link.name, 'mid link')
+            if mid_link.name in LINK_PARAMS:
+                # print('in')
+                # print(LINK_PARAMS[mid_link.name])
+                Fextx = LINK_PARAMS[mid_link.name]['EXTERNAL_FORCE_X']
+                Fexty = LINK_PARAMS[mid_link.name]['EXTERNAL_FORCE_Y']
+                Rextx = LINK_PARAMS[mid_link.name]['EXTERNAL_FORCE_POSITION_X']
+                Rexty = LINK_PARAMS[mid_link.name]['EXTERNAL_FORCE_POSITION_Y']
+                Mext = LINK_PARAMS[mid_link.name]['EXTERNAL_MOMENT']
+                if 'MASS' in LINK_PARAMS[mid_link.name]:
+                    # print('ser m')
+                    MASS = LINK_PARAMS[mid_link.name]['MASS']
+                if 'I' in LINK_PARAMS[mid_link.name]:
+                    I = LINK_PARAMS[mid_link.name]['I']
+                if 'ACCEL' in LINK_PARAMS[mid_link.name]:
+                    ACCEL = LINK_PARAMS[mid_link.name]['ACCEL']
+                if 'ANGULAR_ACCEL' in LINK_PARAMS[mid_link.name]:
+                    ANGULAR_ACCEL = LINK_PARAMS[mid_link.name]['ANGULAR_ACCEL']
+                if 'RCG' in LINK_PARAMS[mid_link.name]:
+                    RCG = LINK_PARAMS[mid_link.name]['RCG']
             else:
                 Fextx = [0]
                 Fexty = [0]
@@ -96,19 +122,28 @@ class Assembly(object):
                 # print(Rexty[i], Rextx[i])
                 M += sum(Mext) - Fextx[i] * Rexty[i] + Fexty[i] * Rextx[i]
             # internal moment
-            M += (-eqns2[0][0] * mid_link.displacement.dy) + (eqns2[0][1] * mid_link.displacement.dx)
-            eq1 = Eq(Fx, 0)
-            eq2 = Eq(Fy, 0)
-            eq3 = Eq(M, 0)
-            sysx.append(eq1)
-            sysy.append(eq2)
-            sysmom.append(eq3)
+            # print(self.joints[j+1].constraint)
+            if self.joints[j+1].constraint != 'slider':
+                M += (-eqns2[0][0] * mid_link.displacement.dy) + (eqns2[0][1] * mid_link.displacement.dx)
+            M += (-MASS*ACCEL[0]*RCG[1])+(MASS*ACCEL[1]*RCG[0])
+            print(RCG)
+            # print(MASS*ACCEL[0], MASS*ACCEL[1], MASS, ACCEL, ANGULAR_ACCEL, I)
+            eq1 = Eq(Fx, MASS*ACCEL[0])
+            eq2 = Eq(Fy, MASS*ACCEL[1])
+            eq3 = Eq(M+I*ANGULAR_ACCEL, 0)
+            if eq1 != False:
+                sysx.append(eq1)
+            if eq2 != False:
+                sysy.append(eq2)
+            if eq3 != False:
+                sysmom.append(eq3)
             # print(Fx, Fy, M)
             print(eq1, 'x equations', mid_link.name)
             print(eq2, 'y equations', mid_link.name)
-            print(eq3, 'z equations', mid_link.name)
-        sol = solve(sysx+sysy+sysmom, set=True)
+            print(eq3, 'M equations', mid_link.name)
+        sol = solve(sysx+sysy+sysmom+constraint_equations, set=True)
         print(sol)
+        return sol
 
 
 def set_axes_equal(ax):
